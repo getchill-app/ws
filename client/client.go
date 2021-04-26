@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	api "github.com/getchill-app/ws"
+	"github.com/getchill-app/ws/api"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 )
@@ -44,8 +44,8 @@ func New(urs string) (*Client, error) {
 	}, nil
 }
 
-// Authorize tokens.
-func (c *Client) Authorize(tokens []string) error {
+// Register tokens.
+func (c *Client) Register(tokens []string) error {
 	if c.conn == nil {
 		return errors.Errorf("not connected")
 	}
