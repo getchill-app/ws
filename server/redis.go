@@ -6,8 +6,9 @@ import (
 	"os"
 	"time"
 
-	api "github.com/getchill-app/ws"
+	"github.com/getchill-app/ws/api"
 	"github.com/gomodule/redigo/redis"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 // NewRedisPool from env.
@@ -38,16 +39,14 @@ func NewRedisPool() *redis.Pool {
 type Redis struct {
 	redisPool *redis.Pool
 	hub       *Hub
-	secretKey *[32]byte
 }
 
 // NewRedis ...
-func NewRedis(hub *Hub, secretKey *[32]byte) *Redis {
+func NewRedis(hub *Hub) *Redis {
 	redisPool := NewRedisPool()
 	return &Redis{
 		redisPool: redisPool,
 		hub:       hub,
-		secretKey: secretKey,
 	}
 }
 
@@ -66,10 +65,10 @@ func (r *Redis) Subscribe() error {
 		case redis.Message:
 			log.Printf("channel %s (%d)\n", v.Channel, len(v.Data))
 			var event api.Event
-			if err := api.Decrypt(v.Data, &event, r.secretKey); err != nil {
-				log.Printf("error decrypting event: %v\n", err)
+			if err := msgpack.Unmarshal(v.Data, &event); err != nil {
+				return err
 			}
-			r.hub.broadcast <- &event
+			r.hub.broadcastCh <- &event
 		case redis.Subscription:
 			log.Printf("subscription %s: %s %d\n", v.Channel, v.Kind, v.Count)
 		case error:

@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
-	api "github.com/getchill-app/ws"
+	"github.com/getchill-app/ws/api"
 	"github.com/gorilla/websocket"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/encoding"
@@ -42,21 +41,19 @@ type client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
-	tokens   []string
-	tokenKey *[32]byte
+	tokens []string
 
 	// Buffered channel of outbound messages.
 	send chan *api.Event
 }
 
 // newClient returns a new client.
-func newClient(hub *Hub, conn *websocket.Conn, tokenKey *[32]byte) *client {
+func newClient(hub *Hub, conn *websocket.Conn) *client {
 	return &client{
-		id:       encoding.MustEncode(keys.Rand16()[:], encoding.Base62),
-		hub:      hub,
-		conn:     conn,
-		send:     make(chan *api.Event, 256),
-		tokenKey: tokenKey,
+		id:   encoding.MustEncode(keys.Rand16()[:], encoding.Base62),
+		hub:  hub,
+		conn: conn,
+		send: make(chan *api.Event, 256),
 	}
 }
 
@@ -67,7 +64,7 @@ func newClient(hub *Hub, conn *websocket.Conn, tokenKey *[32]byte) *client {
 // reads from this goroutine.
 func (c *client) readPump() {
 	defer func() {
-		c.hub.unregister <- c
+		c.hub.unregisterCh <- c
 		_ = c.conn.Close()
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
@@ -84,23 +81,9 @@ func (c *client) readPump() {
 
 		tokens := strings.Split(string(data), ",")
 		for _, token := range tokens {
-			t, err := jwt.Parse(token, c.jwtTokens)
-			if err != nil {
-				log.Printf("invalid token\n")
-				return
-			}
-			if err := t.Claims.Valid(); err != nil {
-				log.Printf("invalid token (claims)\n")
-				return
-			}
-
-			c.hub.auth <- &authClient{client: c, token: token}
+			c.hub.clientCh <- &registerClient{client: c, token: token}
 		}
 	}
-}
-
-func (c *client) jwtTokens(t *jwt.Token) (interface{}, error) {
-	return c.tokenKey[:], nil
 }
 
 // writePump pumps messages from the hub to the websocket connection.
@@ -171,14 +154,20 @@ func (c *client) writePump() {
 }
 
 // Serve handles websocket requests from the peer.
-func Serve(hub *Hub, tokenKey *[32]byte, w http.ResponseWriter, r *http.Request) {
+func Serve(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token != hub.Auth() {
+		log.Println("Invalid auth")
+		return
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	cl := newClient(hub, conn, tokenKey)
-	cl.hub.register <- cl
+	cl := newClient(hub, conn)
+	cl.hub.registerCh <- cl
 
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.

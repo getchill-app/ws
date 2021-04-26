@@ -14,7 +14,6 @@ func main() {
 		log.Fatal("Failed to load .env")
 	}
 
-	sk := os.Getenv("SECRET_KEY")
-	tk := os.Getenv("TOKEN_KEY")
-	log.Fatal(server.ListenAndServe(":8080", "ws://localhost:8080/ws", sk, tk, nil))
+	auth := os.Getenv("AUTH")
+	log.Fatal(server.ListenAndServe(":8080", "ws://localhost:8080/ws", auth))
 }

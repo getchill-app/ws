@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 
-	api "github.com/getchill-app/ws"
+	"github.com/getchill-app/ws/api"
 	"github.com/getchill-app/ws/server"
 	"github.com/joho/godotenv"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/encoding"
 	"github.com/pkg/errors"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 func decodeKey(secretKey string) (*[32]byte, error) {
@@ -31,17 +31,12 @@ func main() {
 		log.Fatal("Failed to load .env")
 	}
 
-	secretKey, err := decodeKey(os.Getenv("SECRET_KEY"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	redisPool := server.NewRedisPool()
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
 	send := func(event *api.Event) error {
-		b, err := api.Encrypt(event, secretKey)
+		b, err := msgpack.Marshal(event)
 		if err != nil {
 			return err
 		}
@@ -54,7 +49,7 @@ func main() {
 	for i := 0; i < 20; i += 2 {
 		channel := keys.NewEdX25519KeyFromSeed(testSeed(byte(i)))
 		token := fmt.Sprintf("testtoken%d", i)
-		if err := send(&api.Event{KID: channel.ID(), Index: 1, Token: token}); err != nil {
+		if err := send(&api.Event{Type: "vault", Vault: &api.Vault{KID: channel.ID(), Index: 1}, Token: token}); err != nil {
 			log.Fatal(err)
 		}
 	}
