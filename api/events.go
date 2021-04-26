@@ -1,4 +1,4 @@
-package ws
+package api
 
 import (
 	"github.com/keys-pub/keys"
