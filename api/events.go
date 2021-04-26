@@ -10,21 +10,13 @@ const EventPubSub = "e"
 // Event to client.
 // JSON is used for websocket clients.
 type Event struct {
-	// Type describes which field is set
-	// - vault: Vault
-	// - accountCreated: AccountCreated
-	Type string `json:"type"`
+	Type  string `json:"type" msgpack:"type"`
+	Token string `json:"token,omitempty" msgpack:"token,omitempty"`
 
-	Vault          *VaultEvent     `json:"vault,omitempty" msgpack:"v,omitempty"`
-	AccountCreated *AccountCreated `json:"accountCreated,omitempty" msgpack:"ac,omitempty"`
+	Vault *Vault `json:"vault,omitempty" msgpack:"vault,omitempty"`
 }
 
-type VaultEvent struct {
-	KID   keys.ID `json:"kid" msgpack:"k"`
-	Index int64   `json:"idx" msgpack:"i"`
-	Token string  `json:"token" msgpack:"t"`
-}
-
-type AccountCreated struct {
-	KID keys.ID `json:"kid"`
+type Vault struct {
+	KID   keys.ID `json:"kid" msgpack:"kid"`
+	Index int64   `json:"idx" msgpack:"idx"`
 }
