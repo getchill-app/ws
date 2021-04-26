@@ -18,9 +18,6 @@ type Event struct {
 
 	Vault          *VaultEvent     `json:"vault,omitempty" msgpack:"v,omitempty"`
 	AccountCreated *AccountCreated `json:"accountCreated,omitempty" msgpack:"ac,omitempty"`
-
-	Index int64  `json:"idx,omitempty" msgpack:"i,omitempty"`
-	Token string `json:"token,omitempty" msgpack:"t,omitempty"`
 }
 
 type VaultEvent struct {
