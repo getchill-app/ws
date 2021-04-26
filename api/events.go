@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/keys-pub/keys"
-	"github.com/vmihailenco/msgpack/v4"
 )
 
 // EventPubSub is the pub/sub name for events.
@@ -28,25 +27,4 @@ type VaultEvent struct {
 
 type AccountCreated struct {
 	KID keys.ID `json:"kid"`
-}
-
-// Encrypt value into data (msgpack).
-func Encrypt(i interface{}, secretKey *[32]byte) ([]byte, error) {
-	b, err := msgpack.Marshal(i)
-	if err != nil {
-		return nil, err
-	}
-	return keys.SecretBoxSeal(b, secretKey), nil
-}
-
-// Decrypt data into value (msgpack).
-func Decrypt(b []byte, v interface{}, secretKey *[32]byte) error {
-	decrypted, err := keys.SecretBoxOpen(b, secretKey)
-	if err != nil {
-		return err
-	}
-	if err := msgpack.Unmarshal(decrypted, v); err != nil {
-		return err
-	}
-	return nil
 }
