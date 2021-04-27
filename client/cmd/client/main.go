@@ -11,9 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var urs = flag.String("url", "wss://relay.keys.pub/ws", "connect using url")
-
 func main() {
+	urs := flag.String("url", "wss://relay.keys.pub/ws", "connect using url")
+	auth := flag.String("auth", "", "auth token")
+
 	flag.Parse()
 
 	log := logrus.New()
@@ -23,7 +24,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	cl, err := client.New(*urs)
+	cl, err := client.New(*urs, *auth)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,7 +51,7 @@ func main() {
 	for i := 0; i < 20; i++ {
 		tokens = append(tokens, fmt.Sprintf("testtoken%d", i))
 	}
-	if err := cl.Authorize(tokens); err != nil {
+	if err := cl.Register(tokens); err != nil {
 		log.Fatal(err)
 	}
 

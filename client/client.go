@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -26,6 +27,7 @@ const (
 // Client to websocket.
 type Client struct {
 	url       *url.URL
+	auth      string
 	conn      *websocket.Conn
 	connected bool
 
@@ -34,13 +36,14 @@ type Client struct {
 }
 
 // New creates a websocket client.
-func New(urs string) (*Client, error) {
+func New(urs string, auth string) (*Client, error) {
 	url, err := url.Parse(urs)
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
-		url: url,
+		url:  url,
+		auth: auth,
 	}, nil
 }
 
@@ -86,10 +89,11 @@ func (c *Client) connect() error {
 	}
 	logger.Infof("Connect...")
 	logger.Infof("Dial %s", c.url)
-	conn, _, err := websocket.DefaultDialer.Dial(c.url.String(), nil)
+	conn, _, err := websocket.DefaultDialer.Dial(c.url.String(), http.Header{"Authorization": []string{c.auth}})
 	if err != nil {
 		return errors.Wrapf(err, "failed to dial")
 	}
+
 	conn.SetReadLimit(maxMessageSize)
 	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 	conn.SetPongHandler(func(string) error { _ = c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
