@@ -158,12 +158,14 @@ func Serve(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token != hub.Auth() {
 		log.Println("Invalid auth")
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	cl := newClient(hub, conn)

@@ -3,7 +3,7 @@ module github.com/getchill-app/ws/server
 go 1.16
 
 require (
-	github.com/getchill-app/ws/api v0.0.0-20210426215504-e67c8ed72768
+	github.com/getchill-app/ws/api v0.0.0-20210426215843-9687d38a8bda
 	github.com/gomodule/redigo v1.8.4
 	github.com/gorilla/websocket v1.4.2
 	github.com/joho/godotenv v1.3.0
