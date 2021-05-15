@@ -75,14 +75,30 @@ func (h *Hub) Run() {
 			h.registerClient(registerClient)
 			// auth.client.send <- &api.Event{}
 		case event := <-h.broadcastCh:
-			clients := h.findClients(event.Token)
-			h.send(clients, event)
+			if event.Token != "" {
+				clients := h.findClients(event.Token)
+				h.send(clients, event)
+			} else {
+				h.sendAll(event)
+			}
 		}
 	}
 }
 
 func (h *Hub) send(clients []*client, event *api.Event) {
 	for _, client := range clients {
+		select {
+		case client.send <- event:
+			// log.Printf("send %s => %s\n", client.id, event)
+		default:
+			close(client.send)
+			h.unregisterClient(client)
+		}
+	}
+}
+
+func (h *Hub) sendAll(event *api.Event) {
+	for _, client := range h.clients {
 		select {
 		case client.send <- event:
 			// log.Printf("send %s => %s\n", client.id, event)
@@ -119,18 +135,7 @@ func (h *Hub) unregisterClient(cl *client) {
 	cl.tokens = nil
 }
 
-func (h *Hub) allClients() []*client {
-	out := make([]*client, 0, len(h.clients))
-	for _, c := range h.clients {
-		out = append(out, c)
-	}
-	return out
-}
-
 func (h *Hub) findClients(token string) []*client {
-	if token == "" {
-		return h.allClients()
-	}
 	clients, ok := h.clientsByToken[token]
 	if !ok {
 		return nil
