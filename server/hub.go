@@ -119,7 +119,18 @@ func (h *Hub) unregisterClient(cl *client) {
 	cl.tokens = nil
 }
 
+func (h *Hub) allClients() []*client {
+	out := make([]*client, 0, len(h.clients))
+	for _, c := range h.clients {
+		out = append(out, c)
+	}
+	return out
+}
+
 func (h *Hub) findClients(token string) []*client {
+	if token == "" {
+		return h.allClients()
+	}
 	clients, ok := h.clientsByToken[token]
 	if !ok {
 		return nil
